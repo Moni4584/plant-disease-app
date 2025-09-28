@@ -14,7 +14,7 @@ import requests
 # Download model from Google Drive
 # -------------------------------
 MODEL_PATH = "plant_disease_cnn_model12.keras"
-URL = "https://drive.google.com/uc?export=download&id=1aBcdEfGhIjklMnOpq"  # Replace with your file ID
+URL = "C:\Users\Thanos\OneDrive\Desktop\plant-disease-app\plant_disease_cnn_model12.keras"  # Replace with your file ID
 
 if not os.path.exists(MODEL_PATH):
     st.info("Downloading model, please wait...")
