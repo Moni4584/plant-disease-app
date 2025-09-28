@@ -1,22 +1,21 @@
 # plant_disease_app.py
+# plant_disease_app.py
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
 import numpy as np
 import os
-import requests
+import gdown
 
 # -------------------------------
 # Download model from Google Drive
 # -------------------------------
 MODEL_PATH = "plant_disease_cnn_model12.keras"
-FILE_ID = "https://drive.google.com/file/d/1VRr1nozY62HF9T70K7-4fs8tLZLWlRKM/view?usp=drive_link"  # Replace with your Google Drive file ID
+FILE_ID = "1VRr1nozY62HF9T70K7-4fs8tLZLWlRKM"  # Replace with your Google Drive file ID
 
 if not os.path.exists(MODEL_PATH):
     url = f"https://drive.google.com/uc?id={FILE_ID}"
-    response = requests.get(url)
-    with open(MODEL_PATH, "wb") as f:
-        f.write(response.content)
+    gdown.download(url, MODEL_PATH, quiet=False, fuzzy=True)
 
 # -------------------------------
 # Load the trained model
@@ -69,6 +68,7 @@ class_names = [
     "Tomato___Tomato_mosaic_virus",
     "Tomato___Tomato_Yellow_Leaf_Curl_Virus"
 ]
+
 # -------------------------------
 # Streamlit App
 # -------------------------------
@@ -95,5 +95,8 @@ if uploaded_file is not None:
 
     st.write(f"**Prediction:** {predicted_class}")
     st.write(f"**Confidence:** {confidence*100:.2f}%")
+
+
+
 
 
