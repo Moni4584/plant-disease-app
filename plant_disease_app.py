@@ -1,3 +1,13 @@
+import os
+import gdown
+
+MODEL_PATH = "plant_disease_cnn_model12.keras"
+FILE_ID = "https://drive.google.com/file/d/19TqKwCA37CTZDw1_UCXzVaWy6APnD3KK/view?usp=drive_link"  # replace with your file ID from Google Drive
+
+if not os.path.exists(MODEL_PATH):
+    url = f"https://drive.google.com/uc?id={FILE_ID}"
+    gdown.download(url, MODEL_PATH, quiet=False)
+
 import streamlit as st
 import tensorflow as tf
 import numpy as np
