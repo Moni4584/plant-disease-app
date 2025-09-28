@@ -1,33 +1,31 @@
+# plant_disease_app.py
+import streamlit as st
+import tensorflow as tf
+from PIL import Image
+import numpy as np
 import os
-import gdown
+import requests
 
+# -------------------------------
+# Download model from Google Drive
+# -------------------------------
 MODEL_PATH = "plant_disease_cnn_model12.keras"
-FILE_ID = "https://drive.google.com/file/d/19TqKwCA37CTZDw1_UCXzVaWy6APnD3KK/view?usp=drive_link"  # replace with your file ID from Google Drive
+FILE_ID = "https://drive.google.com/file/d/1VRr1nozY62HF9T70K7-4fs8tLZLWlRKM/view?usp=drive_link"  # Replace with your Google Drive file ID
 
 if not os.path.exists(MODEL_PATH):
     url = f"https://drive.google.com/uc?id={FILE_ID}"
-    gdown.download(url, MODEL_PATH, quiet=False)
+    response = requests.get(url)
+    with open(MODEL_PATH, "wb") as f:
+        f.write(response.content)
 
-import streamlit as st
-import tensorflow as tf
-import numpy as np
-from PIL import Image
-
-# -----------------------
+# -------------------------------
 # Load the trained model
-# -----------------------
-@st.cache_resource
-def load_cnn_model():
-    model = tf.keras.models.load_model("plant_disease_cnn_model12.keras")
-    return model
+# -------------------------------
+model = tf.keras.models.load_model(MODEL_PATH)
 
-model = load_cnn_model()
-
-# -----------------------
-# Define class names
-# -----------------------
-# ⚠️ Replace with your actual dataset class names in correct order
-# Order should match your dataset classes
+# -------------------------------
+# Define class names (update based on your dataset)
+# -------------------------------
 class_names = [
     "Apple___Apple_scab",
     "Apple___Black_rot",
@@ -71,38 +69,31 @@ class_names = [
     "Tomato___Tomato_mosaic_virus",
     "Tomato___Tomato_Yellow_Leaf_Curl_Virus"
 ]
+# -------------------------------
+# Streamlit App
+# -------------------------------
+st.title("🌿 Plant Disease Detection")
+st.write("Upload a leaf image and the app will predict the disease.")
 
-
-# -----------------------
-# Streamlit App Layout
-# -----------------------
-st.title("🍃 Plant Disease Detection App")
-st.write("Upload a plant leaf image and the model will predict the disease.")
-
-# File uploader
-uploaded_file = st.file_uploader("Choose a leaf image...", type=["jpg", "jpeg", "png"])
+# Upload image
+uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
 
 if uploaded_file is not None:
-    # Show uploaded image
-    img = Image.open(uploaded_file)
-    st.image(img, caption="Uploaded Leaf Image", use_column_width=True)
+    # Display uploaded image
+    image = Image.open(uploaded_file)
+    st.image(image, caption='Uploaded Leaf', use_column_width=True)
+    
+    # Preprocess image for model
+    img = image.resize((224, 224))  # Resize based on your model input
+    img_array = np.array(img) / 255.0
+    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
 
-    # -----------------------
-    # Preprocess the image
-    # -----------------------
-    img = img.resize((224, 224))  # Change (224,224) if your model used another input size
-    img_array = tf.keras.preprocessing.image.img_to_array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)
+    # Prediction
+    predictions = model.predict(img_array)
+    predicted_class = class_names[np.argmax(predictions)]
+    confidence = np.max(predictions)
 
-    # -----------------------
-    # Make prediction
-    # -----------------------
-    prediction = model.predict(img_array)
-    predicted_class = class_names[np.argmax(prediction)]
-    confidence = np.max(prediction) * 100
+    st.write(f"**Prediction:** {predicted_class}")
+    st.write(f"**Confidence:** {confidence*100:.2f}%")
 
-    # -----------------------
-    # Display result
-    # -----------------------
-    st.success(f"Prediction: {predicted_class}")
-    st.info(f"Confidence: {confidence:.2f}%")
+
