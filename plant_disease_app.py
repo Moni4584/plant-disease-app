@@ -1,21 +1,27 @@
-# plant_disease_app.py
-# plant_disease_app.py
+
+
+
+
+
 import streamlit as st
 import tensorflow as tf
 from PIL import Image
 import numpy as np
 import os
-import gdown
+import requests
 
 # -------------------------------
 # Download model from Google Drive
 # -------------------------------
 MODEL_PATH = "plant_disease_cnn_model12.keras"
-FILE_ID = "1VRr1nozY62HF9T70K7-4fs8tLZLWlRKM"  # Replace with your Google Drive file ID
+URL = "https://drive.google.com/uc?export=download&id=1aBcdEfGhIjklMnOpq"  # Replace with your file ID
 
 if not os.path.exists(MODEL_PATH):
-    url = f"https://drive.google.com/uc?id={FILE_ID}"
-    gdown.download(url, MODEL_PATH, quiet=False, fuzzy=True)
+    st.info("Downloading model, please wait...")
+    response = requests.get(URL)
+    with open(MODEL_PATH, "wb") as f:
+        f.write(response.content)
+    st.success("Model downloaded!")
 
 # -------------------------------
 # Load the trained model
@@ -23,7 +29,7 @@ if not os.path.exists(MODEL_PATH):
 model = tf.keras.models.load_model(MODEL_PATH)
 
 # -------------------------------
-# Define class names (update based on your dataset)
+# Define class names
 # -------------------------------
 class_names = [
     "Apple___Apple_scab",
@@ -75,28 +81,19 @@ class_names = [
 st.title("🌿 Plant Disease Detection")
 st.write("Upload a leaf image and the app will predict the disease.")
 
-# Upload image
 uploaded_file = st.file_uploader("Choose an image...", type=["jpg","png","jpeg"])
 
 if uploaded_file is not None:
-    # Display uploaded image
     image = Image.open(uploaded_file)
     st.image(image, caption='Uploaded Leaf', use_column_width=True)
     
-    # Preprocess image for model
-    img = image.resize((224, 224))  # Resize based on your model input
+    img = image.resize((224, 224))
     img_array = np.array(img) / 255.0
-    img_array = np.expand_dims(img_array, axis=0)  # Add batch dimension
+    img_array = np.expand_dims(img_array, axis=0)
 
-    # Prediction
     predictions = model.predict(img_array)
     predicted_class = class_names[np.argmax(predictions)]
     confidence = np.max(predictions)
 
     st.write(f"**Prediction:** {predicted_class}")
     st.write(f"**Confidence:** {confidence*100:.2f}%")
-
-
-
-
-
