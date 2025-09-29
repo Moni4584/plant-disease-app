@@ -63,7 +63,7 @@ class_labels = [
 # ----------------------------
 # 3️⃣ Load TFLite Model
 # ----------------------------
-interpreter = tf.lite.Interpreter(model_path="plant_disease_model.tflite")
+interpreter = tf.lite.Interpreter(model_path="plant_disease_model_quant.tflite")
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
