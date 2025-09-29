@@ -87,7 +87,7 @@ def predict(img):
     output = interpreter.get_tensor(output_details[0]['index'])
     class_index = np.argmax(output)
     confidence = np.max(output) * 100
-    return class_names[class_index], confidence
+    return class_labels[class_index], confidence
 
 # ----------------------------
 # 6️⃣ Upload and Predict
