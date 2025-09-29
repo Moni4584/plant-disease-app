@@ -6,11 +6,12 @@ import tensorflow as tf
 # ----------------------------
 # 1️⃣ App Title
 # ----------------------------
+st.set_page_config(page_title="Plant Disease Detector", layout="centered")
 st.title("🌿 Plant Disease Detection")
 st.write("Upload a leaf image and the model will predict the disease.")
 
 # ----------------------------
-# 2️⃣ Class Names
+# 2️⃣ Class Names (43 classes)
 # ----------------------------
 # Order should match your dataset classes
 class_labels = [
@@ -18,6 +19,7 @@ class_labels = [
     "Apple___Black_rot",
     "Apple___Cedar_apple_rust",
     "Apple___healthy",
+    "Background_without_leaves",
     "Blueberry___healthy",
     "Cherry___healthy",
     "Cherry___Powdery_mildew",
@@ -61,7 +63,7 @@ class_labels = [
 # ----------------------------
 # 3️⃣ Load TFLite Model
 # ----------------------------
-interpreter = tf.lite.Interpreter(model_path="plant_disease_model_quant.tflite")
+interpreter = tf.lite.Interpreter(model_path="plant_disease_model.tflite")
 interpreter.allocate_tensors()
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
@@ -85,17 +87,36 @@ def predict(img):
     output = interpreter.get_tensor(output_details[0]['index'])
     class_index = np.argmax(output)
     confidence = np.max(output) * 100
-    return class_labels[class_index], confidence
+    return class_names[class_index], confidence
 
 # ----------------------------
-# 6️⃣ File Uploader
+# 6️⃣ Upload and Predict
 # ----------------------------
-uploaded_file = st.file_uploader("Choose a leaf image", type=["jpg", "png", "jpeg"])
+if 'history' not in st.session_state:
+    st.session_state.history = []
+
+uploaded_file = st.file_uploader("📂 Upload a leaf image", type=["jpg", "png", "jpeg"])
 
 if uploaded_file:
     image = Image.open(uploaded_file)
     st.image(image, caption="Uploaded Image", use_column_width=True)
+    
     st.write("Classifying...")
     disease, confidence = predict(image)
+    
+    # Show result
     st.success(f"Predicted Disease: **{disease}**")
     st.info(f"Confidence: **{confidence:.2f}%**")
+    
+    # Save to history
+    st.session_state.history.append((image, disease, confidence))
+
+# ----------------------------
+# 7️⃣ Show History (optional)
+# ----------------------------
+if st.session_state.history:
+    st.write("### 📜 Prediction History")
+    for idx, (img, dis, conf) in enumerate(st.session_state.history[::-1], 1):
+        st.image(img, width=150)
+        st.write(f"{idx}. {dis} ({conf:.2f}%)")
+        st.markdown("---")
