@@ -1,21 +1,19 @@
-from tensorflow import keras
-
-# If the file is in the same folder
-model = keras.models.load_model("plant_disease_cnn_model12.keras")
-
-# Or full path
-# model = keras.models.load_model("C:/Users/Monica/Downloads/plant_disease_cnn_model12.keras")
-
 import streamlit as st
-from tensorflow import keras
 from PIL import Image
 import numpy as np
+import tensorflow as tf
 
-# Load the model
-model = keras.models.load_model("plant_disease_cnn_model12.keras")
+# ----------------------------
+# 1️⃣ App Title
+# ----------------------------
+st.title("🌿 Plant Disease Detection")
+st.write("Upload a leaf image and the model will predict the disease.")
 
-# Map class indices to actual plant disease names
-class_names = [
+# ----------------------------
+# 2️⃣ Class Names
+# ----------------------------
+# Order should match your dataset classes
+class_labels = [
     "Apple___Apple_scab",
     "Apple___Black_rot",
     "Apple___Cedar_apple_rust",
@@ -58,25 +56,46 @@ class_names = [
     "Tomato___Tomato_mosaic_virus",
     "Tomato___Tomato_Yellow_Leaf_Curl_Virus"
 ]
-def predict_image(img):
-    img = img.resize((224, 224))  # Adjust to your model input size
-    img_array = np.array(img)/255.0
+
+
+# ----------------------------
+# 3️⃣ Load TFLite Model
+# ----------------------------
+interpreter = tf.lite.Interpreter(model_path="plant_disease_model_quant.tflite")
+interpreter.allocate_tensors()
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+# ----------------------------
+# 4️⃣ Preprocess Image
+# ----------------------------
+def preprocess_image(img):
+    img = img.resize((224, 224))
+    img_array = np.array(img, dtype=np.float32)/255.0
     img_array = np.expand_dims(img_array, axis=0)
-    prediction = model.predict(img_array)
-    class_idx = np.argmax(prediction)
-    return class_names[class_idx], float(np.max(prediction))
+    return img_array
 
-# Streamlit UI
-st.title("🌿 Plant Disease Detection App")
-st.write("Upload a leaf image and the app will predict the disease.")
+# ----------------------------
+# 5️⃣ Predict Function
+# ----------------------------
+def predict(img):
+    img_array = preprocess_image(img)
+    interpreter.set_tensor(input_details[0]['index'], img_array)
+    interpreter.invoke()
+    output = interpreter.get_tensor(output_details[0]['index'])
+    class_index = np.argmax(output)
+    confidence = np.max(output) * 100
+    return class_names[class_index], confidence
 
-uploaded_file = st.file_uploader("Choose an image...", type=["jpg", "jpeg", "png"])
+# ----------------------------
+# 6️⃣ File Uploader
+# ----------------------------
+uploaded_file = st.file_uploader("Choose a leaf image", type=["jpg", "png", "jpeg"])
 
-if uploaded_file is not None:
-    img = Image.open(uploaded_file)
-    st.image(img, caption="Uploaded Image", use_column_width=True)
-    
-    # Prediction
-    disease, confidence = predict_image(img)
-    st.success(f"Predicted Disease: {disease}")
-    st.info(f"Confidence: {confidence*100:.2f}%")
+if uploaded_file:
+    image = Image.open(uploaded_file)
+    st.image(image, caption="Uploaded Image", use_column_width=True)
+    st.write("Classifying...")
+    disease, confidence = predict(image)
+    st.success(f"Predicted Disease: **{disease}**")
+    st.info(f"Confidence: **{confidence:.2f}%**")
