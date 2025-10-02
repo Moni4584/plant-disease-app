@@ -1,90 +1,42 @@
-from flask import Flask, render_template,request,redirect,send_from_directory,url_for
-import numpy as np
-import json
-import uuid
+import streamlit as st
 import tensorflow as tf
 
-app = Flask(__name__)
-model = tf.keras.models.load_model("models/plant_disease_recog_model_pwp.keras")
-label = ['Apple___Apple_scab',
- 'Apple___Black_rot',
- 'Apple___Cedar_apple_rust',
- 'Apple___healthy',
- 'Background_without_leaves',
- 'Blueberry___healthy',
- 'Cherry___Powdery_mildew',
- 'Cherry___healthy',
- 'Corn___Cercospora_leaf_spot Gray_leaf_spot',
- 'Corn___Common_rust',
- 'Corn___Northern_Leaf_Blight',
- 'Corn___healthy',
- 'Grape___Black_rot',
- 'Grape___Esca_(Black_Measles)',
- 'Grape___Leaf_blight_(Isariopsis_Leaf_Spot)',
- 'Grape___healthy',
- 'Orange___Haunglongbing_(Citrus_greening)',
- 'Peach___Bacterial_spot',
- 'Peach___healthy',
- 'Pepper,_bell___Bacterial_spot',
- 'Pepper,_bell___healthy',
- 'Potato___Early_blight',
- 'Potato___Late_blight',
- 'Potato___healthy',
- 'Raspberry___healthy',
- 'Soybean___healthy',
- 'Squash___Powdery_mildew',
- 'Strawberry___Leaf_scorch',
- 'Strawberry___healthy',
- 'Tomato___Bacterial_spot',
- 'Tomato___Early_blight',
- 'Tomato___Late_blight',
- 'Tomato___Leaf_Mold',
- 'Tomato___Septoria_leaf_spot',
- 'Tomato___Spider_mites Two-spotted_spider_mite',
- 'Tomato___Target_Spot',
- 'Tomato___Tomato_Yellow_Leaf_Curl_Virus',
- 'Tomato___Tomato_mosaic_virus',
- 'Tomato___healthy']
+st.set_page_config(page_title="Keras to TFLite Converter", layout="centered")
 
-with open("plant_disease.json",'r') as file:
-    plant_disease = json.load(file)
+st.title("🌱 Plant Disease Model Converter")
+st.write("Upload a Keras `.keras` model and get a quantized TFLite model!")
 
-# print(plant_disease[4])
+# Upload Keras model
+uploaded_model = st.file_uploader("Choose Keras model file (.keras)", type=["keras"])
 
-@app.route('/uploadimages/<path:filename>')
-def uploaded_images(filename):
-    return send_from_directory('./uploadimages', filename)
+if uploaded_model is not None:
+    st.success(f"Uploaded: {uploaded_model.name}")
 
-@app.route('/',methods = ['GET'])
-def home():
-    return render_template('home.html')
+    # Load Keras model
+    try:
+        model = tf.keras.models.load_model(uploaded_model)
+        st.success("✅ Keras model loaded successfully!")
+    except Exception as e:
+        st.error(f"Failed to load model: {e}")
 
-def extract_features(image):
-    image = tf.keras.utils.load_img(image,target_size=(160,160))
-    feature = tf.keras.utils.img_to_array(image)
-    feature = np.array([feature])
-    return feature
+    # Convert to TFLite with quantization
+    if st.button("Convert to Quantized TFLite"):
+        try:
+            converter = tf.lite.TFLiteConverter.from_keras_model(model)
+            converter.optimizations = [tf.lite.Optimize.DEFAULT]
+            tflite_model = converter.convert()
 
-def model_predict(image):
-    img = extract_features(image)
-    prediction = model.predict(img)
-    # print(prediction)
-    prediction_label = plant_disease[prediction.argmax()]
-    return prediction_label
+            # Save to BytesIO for download
+            import io
+            tflite_file = io.BytesIO(tflite_model)
 
-@app.route('/upload/',methods = ['POST','GET'])
-def uploadimage():
-    if request.method == "POST":
-        image = request.files['img']
-        temp_name = f"uploadimages/temp_{uuid.uuid4().hex}"
-        image.save(f'{temp_name}_{image.filename}')
-        print(f'{temp_name}_{image.filename}')
-        prediction = model_predict(f'./{temp_name}_{image.filename}')
-        return render_template('home.html',result=True,imagepath = f'/{temp_name}_{image.filename}', prediction = prediction )
-    
-    else:
-        return redirect('/')
-        
-    
-if __name__ == "__main__":
-    app.run(debug=True)
+            st.download_button(
+                label="Download Quantized TFLite Model",
+                data=tflite_file,
+                file_name="plant_disease_model_quant.tflite",
+                mime="application/octet-stream"
+            )
+
+            st.success("✅ Conversion successful!")
+        except Exception as e:
+            st.error(f"Conversion failed: {e}")

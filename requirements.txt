@@ -1,6 +1,15 @@
+gdown
 streamlit
 tensorflow
-pillow
+keras
 numpy
-gdown
+pandas
+matplotlib
+scikit-learn
+pillow
+opencv-python
+seaborn
+flask
+flask-cors
+gunicorn
 requests
